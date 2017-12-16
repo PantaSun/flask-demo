@@ -6,11 +6,14 @@
 # @File    : views.py
 # @Software: PyCharm
 from application import app, db
-from flask import render_template, redirect, request, flash, get_flashed_messages
+from flask import render_template, redirect, request, flash, get_flashed_messages, send_from_directory
 from models import Image, User
 from flask_login import login_required, login_user, logout_user, current_user
+from qiniusdk import qiniu_upload_file
 import random
 import hashlib
+import uuid
+import os
 import json
 
 
@@ -117,3 +120,32 @@ def login():
 def logout():
     logout_user()
     return redirect('/')
+
+
+def save2local(file, file_name):
+    save_dir = app.config['UPLOAD_DIR']
+    file.save(os.path.join(save_dir, file_name))
+    return '/image/' + file_name
+
+
+@app.route('/image/<image_name>/')
+def view_image(image_name):
+    return send_from_directory(app.config['UPLOAD_DIR'], image_name)
+
+
+@app.route('/upload/', methods=['post'])
+def upload():
+    file = request.files['file']
+    file_ext = ''
+    if file.filename.find('.') > 0:
+        file_ext = file.filename.rsplit('.', 1)[1].strip().lower()
+    if file_ext in app.config['ALLOWED_EXT']:
+        file_name = str(uuid.uuid1()).replace('-', '') + '.' + file_ext
+        # url = save2local(file, file_name)
+        url = qiniu_upload_file(file, file_name)
+        if url is not None:
+            db.session.add(Image(url, current_user.id))
+            db.session.commit()
+
+    return redirect('/profile/%d' % current_user.id)
+
