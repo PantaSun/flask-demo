@@ -27,10 +27,10 @@ def init_database():
     db.create_all()
     for i in xrange(100):
         db.session.add(User('User'+str(i+1), 'password'+str(i)))
-        for j in xrange(3):
+        for j in xrange(10):
             db.session.add(Image(get_image_url(), i+1))
             for k in xrange(3):
-                db.session.add(Comment("This is a comment"+str(k+1), 1+3*i+j, i+1))
+                db.session.add(Comment("This is a comment"+str(k+1), 1+10*i+j, i+1))
     db.session.commit()
 
     image = Image.query.get(3)
